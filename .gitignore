@@ -1,0 +1,9 @@
+# Local environment (contains DB credentials & secrets)
+.env
+
+# Editor / tooling
+.claude/
+
+# Built binaries
+/music-session-app
+*.out

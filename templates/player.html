@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Now Playing · Resonate</title>
+  <style>
+    :root {
+      --bg: #0b0b14;
+      --card: rgba(255, 255, 255, 0.04);
+      --border: rgba(255, 255, 255, 0.08);
+      --text: #f4f4f8;
+      --muted: #9a9ab0;
+      --accent: #7c5cff;
+      --accent-2: #ff5c9d;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      min-height: 100vh;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      color: var(--text);
+      background: radial-gradient(1200px 600px at 20% -10%, #2a1a55 0%, transparent 55%),
+                  radial-gradient(1000px 500px at 110% 10%, #55173d 0%, transparent 50%),
+                  var(--bg);
+      display: grid;
+      place-items: center;
+      padding: 24px;
+    }
+    .shell { width: 100%; max-width: 460px; }
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 20px;
+    }
+    .who { display: flex; align-items: center; gap: 12px; }
+    .avatar {
+      width: 40px; height: 40px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      display: grid; place-items: center;
+      font-weight: 700; font-size: 16px; color: #fff;
+    }
+    .who .label { font-size: 12px; color: var(--muted); }
+    .who .name { font-size: 15px; font-weight: 600; }
+    .logout button {
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,0.03);
+      color: var(--muted);
+      padding: 9px 16px;
+      border-radius: 10px;
+      font-size: 13px; font-weight: 600;
+      cursor: pointer;
+      transition: all .2s ease;
+    }
+    .logout button:hover { color: #fff; border-color: var(--accent-2); }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      padding: 28px;
+      backdrop-filter: blur(18px);
+      box-shadow: 0 24px 60px -20px rgba(0, 0, 0, 0.6);
+    }
+    .art {
+      width: 100%;
+      aspect-ratio: 1 / 1;
+      border-radius: 18px;
+      background: linear-gradient(135deg, #7c5cff 0%, #ff5c9d 100%);
+      display: grid; place-items: center;
+      font-size: 84px;
+      box-shadow: 0 18px 50px -16px var(--accent);
+      position: relative;
+      overflow: hidden;
+    }
+    .art::after {
+      content: "";
+      position: absolute; inset: 0;
+      background: radial-gradient(circle at 70% 20%, rgba(255,255,255,0.25), transparent 45%);
+    }
+    .meta { margin: 22px 4px 6px; }
+    .meta .track { font-size: 20px; font-weight: 700; letter-spacing: -0.02em; }
+    .meta .sub { font-size: 13px; color: var(--muted); margin-top: 4px; }
+
+    .controls {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin-top: 22px;
+    }
+    .play {
+      flex: 0 0 auto;
+      width: 52px; height: 52px;
+      border-radius: 50%;
+      border: 0; cursor: pointer;
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      color: #fff;
+      font-size: 20px;
+      display: grid; place-items: center;
+      box-shadow: 0 10px 26px -10px var(--accent);
+      transition: transform .12s ease, filter .2s ease;
+    }
+    .play:hover { filter: brightness(1.08); }
+    .play:active { transform: scale(0.94); }
+
+    .progress-wrap { flex: 1 1 auto; }
+    .bar {
+      position: relative;
+      height: 8px;
+      border-radius: 99px;
+      background: rgba(255,255,255,0.1);
+      cursor: pointer;
+    }
+    .bar-fill {
+      position: absolute;
+      left: 0; top: 0; bottom: 0;
+      width: 0%;
+      border-radius: 99px;
+      background: linear-gradient(90deg, var(--accent), var(--accent-2));
+    }
+    .bar-handle {
+      position: absolute;
+      top: 50%;
+      left: 0%;
+      width: 14px; height: 14px;
+      border-radius: 50%;
+      background: #fff;
+      transform: translate(-50%, -50%);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+      opacity: 0;
+      transition: opacity .15s ease;
+    }
+    .bar:hover .bar-handle { opacity: 1; }
+    .times {
+      display: flex;
+      justify-content: space-between;
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: 8px;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .status {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 16px;
+      font-size: 12px;
+      color: var(--muted);
+    }
+    .dot {
+      width: 8px; height: 8px; border-radius: 50%;
+      background: #3ad29f;
+      box-shadow: 0 0 0 0 rgba(58, 210, 159, 0.6);
+    }
+    .dot.saving { animation: pulse 1s ease-out; }
+    @keyframes pulse {
+      0% { box-shadow: 0 0 0 0 rgba(58, 210, 159, 0.6); }
+      100% { box-shadow: 0 0 0 10px rgba(58, 210, 159, 0); }
+    }
+
+    .list-title {
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+      margin: 24px 6px 10px;
+    }
+    .tracklist {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .track-item {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 10px 12px;
+      border-radius: 12px;
+      cursor: pointer;
+      border: 1px solid transparent;
+      transition: background .15s ease, border-color .15s ease;
+    }
+    .track-item:hover { background: rgba(255,255,255,0.05); }
+    .track-item.active {
+      background: rgba(124, 92, 255, 0.12);
+      border-color: rgba(124, 92, 255, 0.4);
+    }
+    .ti-art {
+      flex: 0 0 auto;
+      width: 40px; height: 40px;
+      border-radius: 9px;
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      display: grid; place-items: center;
+      font-size: 18px; color: #fff;
+      position: relative;
+    }
+    .ti-info { flex: 1 1 auto; min-width: 0; }
+    .ti-title {
+      font-size: 14px; font-weight: 600;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .ti-artist { font-size: 12px; color: var(--muted); }
+    .ti-badge {
+      flex: 0 0 auto;
+      font-size: 11px;
+      color: #aef0d2;
+      background: rgba(58, 210, 159, 0.14);
+      border: 1px solid rgba(58, 210, 159, 0.3);
+      padding: 3px 8px;
+      border-radius: 99px;
+      font-variant-numeric: tabular-nums;
+    }
+    .ti-eq { display: flex; gap: 2px; align-items: flex-end; height: 14px; }
+    .ti-eq span {
+      width: 3px; background: #fff; border-radius: 2px;
+      animation: eq 0.9s ease-in-out infinite;
+    }
+    .ti-eq span:nth-child(2) { animation-delay: .25s; }
+    .ti-eq span:nth-child(3) { animation-delay: .5s; }
+    @keyframes eq {
+      0%, 100% { height: 4px; } 50% { height: 14px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <div class="topbar">
+      <div class="who">
+        <div class="avatar">♫</div>
+        <div>
+          <div class="label">Signed in as</div>
+          <div class="name">{{.Username}}</div>
+        </div>
+      </div>
+      <form class="logout" method="POST" action="/logout"><button type="submit">Log out</button></form>
+    </div>
+
+    <div class="card">
+      <div class="art">♫</div>
+
+      <div class="meta">
+        <div class="track" id="np-title">{{range .Tracks}}{{if .Current}}{{.Title}}{{end}}{{end}}</div>
+        <div class="sub" id="np-artist">{{range .Tracks}}{{if .Current}}{{.Artist}}{{end}}{{end}}</div>
+      </div>
+
+      <audio id="player" src="/static/{{range .Tracks}}{{if .Current}}{{.File}}{{end}}{{end}}" preload="metadata"></audio>
+
+      <div class="controls">
+        <button class="play" id="play" type="button" aria-label="Play">▶</button>
+        <div class="progress-wrap">
+          <div class="bar" id="bar">
+            <div class="bar-fill" id="bar-fill"></div>
+            <div class="bar-handle" id="bar-handle"></div>
+          </div>
+          <div class="times">
+            <span id="cur">0:00</span>
+            <span id="dur">0:00</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="status">
+        <span class="dot" id="dot"></span>
+        <span id="status-text">Progress saves automatically every 5s</span>
+      </div>
+
+      <div class="list-title">Tracks</div>
+      <ul class="tracklist" id="tracklist">
+        {{range $i, $t := .Tracks}}
+        <li class="track-item {{if $t.Current}}active{{end}}" data-index="{{$i}}">
+          <div class="ti-art">
+            {{if $t.Current}}<div class="ti-eq"><span></span><span></span><span></span></div>{{else}}♫{{end}}
+          </div>
+          <div class="ti-info">
+            <div class="ti-title">{{$t.Title}}</div>
+            <div class="ti-artist">{{$t.Artist}}</div>
+          </div>
+          {{if gt $t.Position 0}}<span class="ti-badge" data-pos="{{$t.Position}}">{{$t.Position}}s</span>{{end}}
+        </li>
+        {{end}}
+      </ul>
+    </div>
+  </div>
+
+  <script>
+    const audio = document.getElementById('player');
+    const dot = document.getElementById('dot');
+    const statusText = document.getElementById('status-text');
+    const playBtn = document.getElementById('play');
+    const bar = document.getElementById('bar');
+    const barFill = document.getElementById('bar-fill');
+    const barHandle = document.getElementById('bar-handle');
+    const curEl = document.getElementById('cur');
+    const durEl = document.getElementById('dur');
+
+    function fmt(secs) {
+      if (!isFinite(secs)) return '0:00';
+      const m = Math.floor(secs / 60);
+      const s = Math.floor(secs % 60);
+      return m + ':' + String(s).padStart(2, '0');
+    }
+
+    function renderProgress() {
+      const pct = audio.duration ? (audio.currentTime / audio.duration) * 100 : 0;
+      barFill.style.width = pct + '%';
+      barHandle.style.left = pct + '%';
+      curEl.textContent = fmt(audio.currentTime);
+    }
+
+    // Play / pause toggle
+    playBtn.addEventListener('click', () => {
+      if (audio.paused) audio.play(); else audio.pause();
+    });
+    audio.addEventListener('play', () => { playBtn.textContent = '❚❚'; playBtn.setAttribute('aria-label', 'Pause'); });
+    audio.addEventListener('pause', () => { playBtn.textContent = '▶'; playBtn.setAttribute('aria-label', 'Play'); });
+
+    // Time + progress wiring
+    audio.addEventListener('loadedmetadata', () => { durEl.textContent = fmt(audio.duration); renderProgress(); });
+    audio.addEventListener('timeupdate', renderProgress);
+    audio.addEventListener('ended', () => { playBtn.textContent = '▶'; });
+
+    // Click-to-seek
+    bar.addEventListener('click', (e) => {
+      if (!audio.duration) return;
+      const rect = bar.getBoundingClientRect();
+      const ratio = Math.min(1, Math.max(0, (e.clientX - rect.left) / rect.width));
+      audio.currentTime = ratio * audio.duration;
+      renderProgress();
+    });
+
+    // ---- Track catalog (rendered from the server) ----
+    const TRACKS = [
+      {{range .Tracks}}{ file: "{{.File}}", title: "{{.Title}}", artist: "{{.Artist}}", pos: {{.Position}}, current: {{if .Current}}true{{else}}false{{end}} },
+      {{end}}
+    ];
+    const list = document.getElementById('tracklist');
+    let currentIndex = Math.max(0, TRACKS.findIndex(t => t.current));
+    let pendingSeek = TRACKS[currentIndex].pos; // applied once metadata is ready
+
+    // Apply the per-track resume position once the duration is known.
+    audio.addEventListener('loadedmetadata', () => {
+      if (pendingSeek != null) {
+        audio.currentTime = Math.min(pendingSeek, audio.duration || pendingSeek);
+        pendingSeek = null;
+        renderProgress();
+      }
+    });
+
+    function highlight(idx) {
+      [...list.children].forEach((li, i) => {
+        const active = i === idx;
+        li.classList.toggle('active', active);
+        const art = li.querySelector('.ti-art');
+        art.innerHTML = active
+          ? '<div class="ti-eq"><span></span><span></span><span></span></div>'
+          : '♫';
+      });
+    }
+
+    function loadTrack(idx, autoplay) {
+      const t = TRACKS[idx];
+      if (!t) return;
+      currentIndex = idx;
+      pendingSeek = t.pos || 0;
+      audio.src = '/static/' + t.file;
+      audio.load();
+      document.getElementById('np-title').textContent = t.title;
+      document.getElementById('np-artist').textContent = t.artist;
+      highlight(idx);
+      save();                 // remember the switch immediately
+      if (autoplay) audio.play();
+    }
+
+    list.addEventListener('click', (e) => {
+      const li = e.target.closest('.track-item');
+      if (li) loadTrack(Number(li.dataset.index), true);
+    });
+
+    // ---- Persisting progress (per track) ----
+    function updateBadge(idx, pos) {
+      const li = list.children[idx];
+      if (!li) return;
+      let badge = li.querySelector('.ti-badge');
+      if (pos > 0) {
+        if (!badge) {
+          badge = document.createElement('span');
+          badge.className = 'ti-badge';
+          li.appendChild(badge);
+        }
+        badge.textContent = fmt(pos);
+      } else if (badge) {
+        badge.remove();
+      }
+    }
+
+    function save() {
+      const t = TRACKS[currentIndex];
+      const pos = Math.floor(audio.currentTime) || 0;
+      t.pos = pos;
+      return fetch('/player/save', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+        body: `song=${encodeURIComponent(t.file)}&position=${pos}`
+      }).then(() => {
+        dot.classList.remove('saving');
+        void dot.offsetWidth; // restart animation
+        dot.classList.add('saving');
+        statusText.textContent = `Saved “${t.title}” at ${fmt(pos)}`;
+        updateBadge(currentIndex, pos);
+      }).catch(() => {
+        statusText.textContent = 'Could not save progress';
+      });
+    }
+
+    // Format server-rendered resume badges (raw seconds) as m:ss.
+    [...list.querySelectorAll('.ti-badge[data-pos]')].forEach(b => {
+      b.textContent = fmt(Number(b.dataset.pos));
+    });
+
+    renderProgress();
+    setInterval(save, 5000);
+  </script>
+</body>
+</html>

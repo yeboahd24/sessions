@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sign in · Resonate</title>
+  <style>
+    :root {
+      --bg: #0b0b14;
+      --card: rgba(255, 255, 255, 0.04);
+      --border: rgba(255, 255, 255, 0.08);
+      --text: #f4f4f8;
+      --muted: #9a9ab0;
+      --accent: #7c5cff;
+      --accent-2: #ff5c9d;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      min-height: 100vh;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      color: var(--text);
+      background: radial-gradient(1200px 600px at 20% -10%, #2a1a55 0%, transparent 55%),
+                  radial-gradient(1000px 500px at 110% 10%, #55173d 0%, transparent 50%),
+                  var(--bg);
+      display: grid;
+      place-items: center;
+      padding: 24px;
+    }
+    .card {
+      width: 100%;
+      max-width: 400px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 36px 32px;
+      backdrop-filter: blur(18px);
+      box-shadow: 0 24px 60px -20px rgba(0, 0, 0, 0.6);
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 28px;
+    }
+    .logo {
+      width: 44px; height: 44px;
+      border-radius: 12px;
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      display: grid; place-items: center;
+      font-size: 22px;
+      box-shadow: 0 8px 24px -6px var(--accent);
+    }
+    .brand h1 { font-size: 20px; font-weight: 700; letter-spacing: -0.02em; }
+    .brand p { font-size: 13px; color: var(--muted); }
+    .tabs {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 4px;
+      background: rgba(0,0,0,0.25);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 4px;
+      margin-bottom: 24px;
+    }
+    .tabs button {
+      border: 0; cursor: pointer;
+      padding: 10px;
+      border-radius: 8px;
+      font-size: 14px; font-weight: 600;
+      color: var(--muted);
+      background: transparent;
+      transition: all .2s ease;
+    }
+    .tabs button.active {
+      color: #fff;
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      box-shadow: 0 6px 18px -8px var(--accent);
+    }
+    form { display: none; flex-direction: column; gap: 14px; }
+    form.active { display: flex; }
+    label { font-size: 12px; color: var(--muted); margin-bottom: -8px; }
+    input {
+      width: 100%;
+      padding: 13px 14px;
+      border-radius: 11px;
+      border: 1px solid var(--border);
+      background: rgba(0,0,0,0.3);
+      color: var(--text);
+      font-size: 15px;
+      transition: border-color .2s ease, box-shadow .2s ease;
+    }
+    input::placeholder { color: #6c6c84; }
+    input:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(124, 92, 255, 0.18);
+    }
+    .submit {
+      margin-top: 6px;
+      padding: 13px;
+      border: 0; cursor: pointer;
+      border-radius: 11px;
+      font-size: 15px; font-weight: 700;
+      color: #fff;
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      box-shadow: 0 10px 28px -10px var(--accent);
+      transition: transform .12s ease, filter .2s ease;
+    }
+    .submit:hover { filter: brightness(1.08); }
+    .submit:active { transform: translateY(1px); }
+    .banner {
+      border-radius: 11px;
+      padding: 11px 14px;
+      font-size: 13px;
+      margin-bottom: 18px;
+      border: 1px solid transparent;
+      display: flex;
+      align-items: center;
+      gap: 9px;
+    }
+    .banner.error {
+      color: #ffb4c8;
+      background: rgba(255, 92, 157, 0.12);
+      border-color: rgba(255, 92, 157, 0.35);
+    }
+    .banner.notice {
+      color: #aef0d2;
+      background: rgba(58, 210, 159, 0.12);
+      border-color: rgba(58, 210, 159, 0.35);
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="brand">
+      <div class="logo">♫</div>
+      <div>
+        <h1>Resonate</h1>
+        <p>Pick up your music where you left off</p>
+      </div>
+    </div>
+
+    {{if .Error}}<div class="banner error">⚠ {{.Error}}</div>{{end}}
+    {{if .Notice}}<div class="banner notice">✓ {{.Notice}}</div>{{end}}
+
+    <div class="tabs">
+      <button id="tab-login" class="{{if ne .Tab "register"}}active{{end}}" type="button" onclick="switchTab('login')">Sign in</button>
+      <button id="tab-register" class="{{if eq .Tab "register"}}active{{end}}" type="button" onclick="switchTab('register')">Create account</button>
+    </div>
+
+    <form id="form-login" class="{{if ne .Tab "register"}}active{{end}}" method="POST" action="/login">
+      <label for="login-user">Username</label>
+      <input id="login-user" name="username" placeholder="your_username" required autocomplete="username" value="{{if ne .Tab "register"}}{{.Username}}{{end}}">
+      <label for="login-pass">Password</label>
+      <input id="login-pass" name="password" type="password" placeholder="••••••••" required autocomplete="current-password">
+      <button class="submit" type="submit">Sign in</button>
+    </form>
+
+    <form id="form-register" class="{{if eq .Tab "register"}}active{{end}}" method="POST" action="/register">
+      <label for="reg-user">Username</label>
+      <input id="reg-user" name="username" placeholder="choose a username" required autocomplete="username" value="{{if eq .Tab "register"}}{{.Username}}{{end}}">
+      <label for="reg-pass">Password</label>
+      <input id="reg-pass" name="password" type="password" placeholder="create a password" required autocomplete="new-password">
+      <button class="submit" type="submit">Create account</button>
+    </form>
+  </div>
+
+  <script>
+    function switchTab(name) {
+      const isLogin = name === 'login';
+      document.getElementById('tab-login').classList.toggle('active', isLogin);
+      document.getElementById('tab-register').classList.toggle('active', !isLogin);
+      document.getElementById('form-login').classList.toggle('active', isLogin);
+      document.getElementById('form-register').classList.toggle('active', !isLogin);
+    }
+  </script>
+</body>
+</html>
